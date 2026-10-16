@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindLens · AI Media Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{--bg:#07080f;--panel:rgba(255,255,255,.04);--line:rgba(255,255,255,.08);--tx:#eceefb;--mut:#8b90ad;--a:#7c5cff;--b:#22d3ee;--c:#f472b6;--ok:#34d399;--r:18px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex}
+body::before,body::after{content:"";position:fixed;width:520px;height:520px;border-radius:50%;filter:blur(130px);opacity:.28;z-index:0;pointer-events:none}
+body::before{background:var(--a);top:-160px;left:120px}body::after{background:var(--b);bottom:-200px;right:-100px;opacity:.18}
+aside{width:240px;padding:24px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;z-index:1;background:rgba(7,8,15,.6);backdrop-filter:blur(14px)}
+.logo{display:flex;align-items:center;gap:10px;font:700 20px "Space Grotesk";margin-bottom:26px}
+.logo i{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--a),var(--b));display:grid;place-items:center;font-style:normal;box-shadow:0 6px 24px rgba(124,92,255,.5)}
+.nav{padding:11px 14px;border-radius:12px;color:var(--mut);font-size:14px;font-weight:500;cursor:pointer;display:flex;gap:10px;transition:.2s}
+.nav:hover{background:var(--panel);color:var(--tx)}.nav.on{background:linear-gradient(90deg,rgba(124,92,255,.25),transparent);color:#fff;box-shadow:inset 3px 0 var(--a)}
+.side-card{margin-top:auto;padding:16px;border-radius:var(--r);background:linear-gradient(135deg,rgba(124,92,255,.22),rgba(34,211,238,.12));border:1px solid var(--line);font-size:12.5px;color:var(--mut)}
+.side-card b{color:var(--tx);display:block;margin-bottom:4px;font-size:13.5px}
+main{flex:1;display:flex;flex-direction:column;padding:24px 30px;gap:20px;z-index:1;min-width:0;overflow:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+h1{font:700 26px "Space Grotesk"}h1 span{background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:13.5px;margin-top:3px}
+.search{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--tx);width:240px;outline:none;font:inherit;font-size:13.5px}
+.btn{background:linear-gradient(135deg,var(--a),#5b8cff);border:0;color:#fff;padding:10px 18px;border-radius:12px;font:600 13.5px Inter;cursor:pointer;box-shadow:0 8px 24px rgba(124,92,255,.35);transition:.2s}
+.btn:hover{transform:translateY(-2px)}.btn.ghost{background:var(--panel);border:1px solid var(--line);box-shadow:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(14px)}
+.stat{padding:18px;position:relative;overflow:hidden;transition:.25s}.stat:hover{transform:translateY(-4px);border-color:rgba(124,92,255,.5)}
+.stat small{color:var(--mut);font-size:12.5px}.stat h2{font:700 30px "Space Grotesk";margin-top:6px}
+.stat .ic{position:absolute;right:14px;top:14px;font-size:22px;opacity:.9}
+.stat::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--g)}
+.grid{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;flex:1;min-height:520px}
+.col{display:flex;flex-direction:column;gap:16px;min-height:0}
+.drop{border:2px dashed rgba(124,92,255,.5);border-radius:var(--r);padding:30px 20px;text-align:center;cursor:pointer;transition:.25s;background:rgba(124,92,255,.05)}
+.drop:hover,.drop.over{background:rgba(124,92,255,.15);border-color:var(--b);transform:scale(1.01)}
+.drop .big{font-size:38px;animation:fl 3s ease-in-out infinite}@keyframes fl{50%{transform:translateY(-6px)}}
+.drop p{color:var(--mut);font-size:13px;margin-top:6px}.drop b{font-size:15px}
+.lib{flex:1;padding:16px;display:flex;flex-direction:column;min-height:0}
+.lib h3,.chat h3{font:600 15px Inter;margin-bottom:12px;display:flex;justify-content:space-between}
+.list{overflow:auto;display:flex;flex-direction:column;gap:10px}
+.file{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line);transition:.2s;animation:in .4s}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+.file.sel{border-color:var(--a);background:rgba(124,92,255,.12)}
+.file input{accent-color:var(--a);width:16px;height:16px}
+.fi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex:none}
+.fi.video{background:rgba(244,114,182,.18)}.fi.audio{background:rgba(34,211,238,.18)}.fi.doc{background:rgba(124,92,255,.2)}
+.fm{flex:1;min-width:0}.fm b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fm small{color:var(--mut);font-size:12px}
+.tag{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:600}
+.tag.p{background:rgba(251,191,36,.15);color:#fbbf24}.tag.r{background:rgba(52,211,153,.15);color:var(--ok)}.tag.e{background:rgba(248,113,113,.15);color:#f87171}
+.tag.p::before{content:"";display:inline-block;width:8px;height:8px;border:2px solid #fbbf24;border-top-color:transparent;border-radius:50%;margin-right:6px;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px}.x:hover{color:#f87171}
+.chat{flex:1;display:flex;flex-direction:column;padding:18px;min-height:0}
+.msgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:4px 2px 14px}
+.m{max-width:88%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.6;white-space:pre-wrap;animation:in .3s}
+.m.u{align-self:flex-end;background:linear-gradient(135deg,var(--a),#5b8cff)}.m.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.empty{margin:auto;text-align:center;color:var(--mut);font-size:13.5px}.empty .big{font-size:42px;margin-bottom:8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.chip{padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;color:var(--tx);cursor:pointer;transition:.2s}.chip:hover{border-color:var(--b);color:var(--b)}
+.inp{display:flex;gap:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:16px;padding:8px}
+.inp:focus-within{border-color:var(--a);box-shadow:0 0 0 4px rgba(124,92,255,.15)}
+.inp textarea{flex:1;background:none;border:0;outline:none;color:var(--tx);font:inherit;font-size:14px;resize:none;padding:8px}
+.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--b);animation:b 1s infinite}.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}@keyframes b{50%{transform:translateY(-6px);opacity:.4}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;place-items:center;z-index:9}.modal.on{display:grid}
+.box{width:420px;padding:28px;background:#0e1020}.box h3{font:700 20px "Space Grotesk";margin-bottom:6px}.box p{color:var(--mut);font-size:13px;margin-bottom:16px}
+.box input{width:100%;padding:12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--tx);margin-bottom:14px;outline:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:9px}
+@media(max-width:1000px){aside{display:none}.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}body{overflow:auto;height:auto}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="logo"><i>✦</i>MindLens</div>
+  <div class="nav on">▦ Dashboard</div><div class="nav">🎞 Library</div><div class="nav">💬 Conversations</div><div class="nav">⚙ Settings</div>
+  <div class="side-card"><b>Powered by Groq ⚡</b>Whisper transcription + Llama 3.3 for lightning-fast answers.</div>
+</aside>
+
+<main>
+  <header>
+    <div><h1>Welcome back, <span>Creator</span></h1><div class="sub">Upload anything. Ask anything. Get exact answers.</div></div>
+    <div style="display:flex;gap:10px"><input class="search" id="q" placeholder="🔍 Search files…"><button class="btn ghost" onclick="keyModal(true)">🔑 API Key</button></div>
+  </header>
+
+  <section class="stats">
+    <div class="card stat" style="--g:linear-gradient(90deg,#7c5cff,#5b8cff)"><span class="ic">📁</span><small>Total files</small><h2 id="sT">0</h2></div>
+    <div class="card stat" style="--g:linear-gradient(90deg,#f472b6,#fb923c)"><span class="ic">🎬</span><small>Videos</small><h2 id="sV">0</h2></div>
+    <div class="card stat" style="--g:linear-gradient(90deg,#22d3ee,#34d399)"><span class="ic">🎧</span><small>Audio</small><h2 id="sA">0</h2></div>
+    <div class="card stat" style="--g:linear-gradient(90deg,#a78bfa,#f472b6)"><span class="ic">📄</span><small>Documents</small><h2 id="sD">0</h2></div>
+  </section>
+
+  <section class="grid">
+    <div class="col">
+      <div class="drop" id="drop" onclick="fi.click()">
+        <div class="big">☁️</div><b>Drop files here or click to upload</b>
+        <p>Video · Audio · PDF · DOCX · TXT · MD · CSV · JSON (media up to 25 MB)</p>
+        <input type="file" id="fi" multiple hidden accept="video/*,audio/*,.pdf,.docx,.txt,.md,.csv,.json">
+      </div>
+      <div class="card lib"><h3>Your Library <small id="cnt" style="color:var(--mut);font-weight:400"></small></h3><div class="list" id="list"></div></div>
+    </div>
+
+    <div class="card chat">
+      <h3>✨ Ask AI <small style="color:var(--mut);font-weight:400" id="selInfo">No files selected</small></h3>
+      <div class="msgs" id="msgs">
+        <div class="empty" id="empty"><div class="big">🧠</div>Select one or more ready files, then ask a question.
+          <div class="chips">
+            <span class="chip" onclick="ask('Give me a concise summary')">Summarize</span>
+            <span class="chip" onclick="ask('List all key points as bullets')">Key points</span>
+            <span class="chip" onclick="ask('Extract all names, dates and numbers')">Extract facts</span>
+            <span class="chip" onclick="ask('List action items')">Action items</span>
+          </div></div>
+      </div>
+      <div class="inp"><textarea id="prompt" rows="2" placeholder="Ask exactly what you need from your files…"></textarea><button class="btn" onclick="send()">Send ➤</button></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="km"><div class="card box"><h3>Connect Groq</h3><p>Get a free key at console.groq.com. It is stored only in your browser.</p>
+<input id="key" type="password" placeholder="gsk_..."><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn ghost" onclick="keyModal(false)">Cancel</button><button class="btn" onclick="saveKey()">Save</button></div></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const CHAT_MODEL="llama-3.3-70b-versatile", STT_MODEL="whisper-large-v3-turbo";
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+let files=[],history=[],KEY=localStorage.getItem("groq_key")||"";
+
+function keyModal(s){$("km").classList.toggle("on",s);$("key").value=KEY}
+function saveKey(){KEY=$("key").value.trim();localStorage.setItem("groq_key",KEY);keyModal(false)}
+function kind(f){if(f.type.startsWith("video"))return"video";if(f.type.startsWith("audio"))return"audio";return"doc"}
+const icon={video:"🎬",audio:"🎧",doc:"📄"};
+const size=b=>b>1e6?(b/1e6).toFixed(1)+" MB":(b/1e3).toFixed(0)+" KB";
+
+async function transcribe(f){
+  if(!KEY)throw Error("Add your Groq API key first");
+  if(f.size>25e6)throw Error("Media over 25 MB: compress or extract audio first");
+  const fd=new FormData();fd.append("file",f);fd.append("model",STT_MODEL);fd.append("response_format","text");
+  const r=await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{method:"POST",headers:{Authorization:"Bearer "+KEY},body:fd});
+  if(!r.ok)throw Error((await r.json().catch(()=>({}))).error?.message||"Transcription failed");
+  return r.text();
+}
+async function extract(f){
+  const n=f.name.toLowerCase();
+  if(n.endsWith(".pdf")){const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;let t="";
+    for(let i=1;i<=pdf.numPages;i++){const p=await(await pdf.getPage(i)).getTextContent();t+=`\n[Page ${i}]\n`+p.items.map(x=>x.str).join(" ")}return t}
+  if(n.endsWith(".docx"))return(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value;
+  return f.text();
+}
+async function addFile(f){
+  const o={id:crypto.randomUUID(),name:f.name,size:f.size,kind:kind(f),status:"p",text:"",sel:false};
+  files.unshift(o);render();
+  try{o.text=o.kind==="doc"?await extract(f):await transcribe(f);o.status="r";o.sel=true}
+  catch(e){o.status="e";o.err=e.message}
+  render();
+}
+function render(){
+  const term=$("q").value.toLowerCase(),v=files.filter(f=>f.name.toLowerCase().includes(term));
+  $("list").innerHTML=v.length?v.map(f=>`<div class="file ${f.sel?"sel":""}">
+    <input type="checkbox" ${f.sel?"checked":""} ${f.status!=="r"?"disabled":""} onchange="tog('${f.id}')">
+    <div class="fi ${f.kind}">${icon[f.kind]}</div>
+    <div class="fm"><b>${f.name}</b><small>${size(f.size)} · ${f.kind}${f.err?" · "+f.err:""}</small></div>
+    <span class="tag ${f.status}">${{p:"Processing",r:"Ready",e:"Failed"}[f.status]}</span><button class="x" onclick="del('${f.id}')">✕</button></div>`).join("")
+    :`<div class="empty" style="padding:30px">No files yet</div>`;
+  $("sT").textContent=files.length;
+  ["video","audio","doc"].forEach((k,i)=>$(["sV","sA","sD"][i]).textContent=files.filter(f=>f.kind===k).length);
+  const s=files.filter(f=>f.sel).length;$("selInfo").textContent=s?s+" file(s) selected":"No files selected";
+  $("cnt").textContent=files.length?`(${files.length})`:"";
+}
+const tog=id=>{const f=files.find(x=>x.id===id);f.sel=!f.sel;render()};
+const del=id=>{files=files.filter(f=>f.id!==id);render()};
+$("q").oninput=render;
+$("fi").onchange=e=>[...e.target.files].forEach(addFile);
+const d=$("drop");
+["dragover","dragenter"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove("over")}));
+d.addEventListener("drop",e=>[...e.dataTransfer.files].forEach(addFile));
+
+function bubble(t,c){const m=document.createElement("div");m.className="m "+c;m.innerHTML=t;$("msgs").appendChild(m);$("msgs").scrollTop=1e9;return m}
+function ask(t){$("prompt").value=t;send()}
+async function send(){
+  const q=$("prompt").value.trim();if(!q)return;
+  if(!KEY)return keyModal(true);
+  const sel=files.filter(f=>f.sel&&f.status==="r");
+  if(!sel.length){alert("Select at least one ready file");return}
+  $("empty")?.remove();$("prompt").value="";
+  bubble(q.replace(/</g,"&lt;"),"u");
+  const w=bubble('<span class="dots"><span></span><span></span><span></span></span>',"a");
+  const ctx=sel.map(f=>`### FILE: ${f.name} (${f.kind})\n${f.text.slice(0,40000)}`).join("\n\n");
+  history.push({role:"user",content:q});
+  try{
+    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",
+      headers:{Authorization:"Bearer "+KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({model:CHAT_MODEL,temperature:.2,messages:[
+        {role:"system",content:"You are a precise assistant. Answer ONLY from the provided file contents. Be exact, cite the file name (and page/timestamp if available). If the answer is not in the files, say so.\n\n"+ctx},
+        ...history.slice(-10)]})});
+    const j=await r.json();if(!r.ok)throw Error(j.error?.message||"Request failed");
+    const a=j.choices[0].message.content;history.push({role:"assistant",content:a});
+    w.textContent=a;
+  }catch(e){w.textContent="⚠ "+e.message;history.pop()}
+  $("msgs").scrollTop=1e9;
+}
+$("prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+render();if(!KEY)setTimeout(()=>keyModal(true),600);
+</script>
+</body>
+</html>
