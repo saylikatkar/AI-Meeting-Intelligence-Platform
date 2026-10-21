@@ -50,6 +50,9 @@ export default function Navbar() {
         {/* Right controls */}
         <div className="nav-right-actions">
           <ThemeToggle />
+          <Link to="/login" className="btn btn-secondary">
+            Sign in
+          </Link>
           <Link to="/pricing" className="btn btn-primary">
             View Pricing <ArrowRight size={15} />
           </Link>
@@ -82,7 +85,10 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link to="/pricing" className="btn btn-primary" style={{ marginTop: 12 }}>
+            <Link to="/login" className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => setMobileOpen(false)}>
+              Sign in
+            </Link>
+            <Link to="/pricing" className="btn btn-primary">
               View Pricing <ArrowRight size={15} />
             </Link>
           </nav>

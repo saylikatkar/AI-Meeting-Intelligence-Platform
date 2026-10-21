@@ -5,6 +5,12 @@ import { ThemeProvider } from './components/ThemeContext'
 import App from './App.jsx'
 import './styles.css'
 
+// Login + workspace styles. Order matters: keep base first and responsive last.
+import './styles/base.css'
+import './styles/auth.css'
+import './styles/app.css'
+import './styles/responsive.css'
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
