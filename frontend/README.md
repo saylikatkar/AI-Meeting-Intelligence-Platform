@@ -1,16 +1,73 @@
-# React + Vite
+# MeetingIntel — Frontend (login + workspace)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite app for the signed-in part of the AI Meeting Intelligence Platform:
+login, registration, role-based dashboards (Member / Manager / Admin) and the meeting workspace.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+From the repository root, make sure `.env` exists (see the root README), then:
 
-## React Compiler
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Open http://localhost:5173 (it opens on the login page).
 
-## Expanding the ESLint configuration
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the production build |
+| `npm run lint` | Run ESLint |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Login (temporary, until backend JWT auth is ready)
+
+- **Member:** create an account on `/register`.
+- **Admin / Manager:** add these to the **root** `.env` (this app reads `.env` from the repo root via `envDir: '..'` in `vite.config.js`). Get the values from the team lead and never commit them:
+
+```
+VITE_ADMIN_EMAIL=
+VITE_ADMIN_PASSWORD=
+VITE_MANAGER_EMAIL=
+VITE_MANAGER_PASSWORD=
+```
+
+`VITE_*` values are built into the browser bundle, so this is for local development only. Remove it once `/api/auth` is implemented.
+
+## Pages
+
+| Area | Routes |
+|---|---|
+| Auth | `/login`, `/register`, `/forgot-password` |
+| Dashboards | `/app` (Member, Manager or Admin view by role) |
+| Meetings | `/meetings`, `/meeting/:id`, `/upload` |
+| Workspace | `/actions`, `/analytics`, `/calendar`, `/compare`, `/settings`, `/users` (Admin only) |
+
+All data is sample data stored in the browser until the backend API is connected.
+
+## Structure
+
+```
+frontend/src/
+├── main.jsx                 # entry: router + theme + styles
+├── App.jsx                  # routes
+├── auth.js                  # temporary local auth (reads root .env)
+├── data.js                  # sample data
+├── pages/
+│   ├── auth/                # AuthShell, Login, Register, ForgotPassword
+│   ├── dashboard/           # Member / Manager / Admin dashboards
+│   ├── meetings/            # MeetingsPage, UploadPage, MeetingDetail
+│   └── workspace/           # ActionItems, Analytics, Calendar, Compare, Settings, Users
+├── layouts/AppLayout.jsx    # sidebar + top bar
+├── routes/                  # Protected (login/role guard), Workspace (page switch)
+├── components/
+│   ├── common/              # Brand, ThemeToggle, Field
+│   └── ui/                  # PageHeading, StatCard, Status, MeetingRow
+├── context/                 # theme (dark / light)
+├── utils/                   # helpers, transcript exports (PDF/DOC/TXT/JSON/CSV/SRT/VTT)
+└── styles/                  # base, auth, app, responsive CSS
+```
+
+Author: Panyala Avinash Reddy
