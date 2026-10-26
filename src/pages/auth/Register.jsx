@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, UserRound } from 'lucide-react'
@@ -12,20 +13,50 @@ export function Register({ onLogin }) {
   const [confirm, setConfirm] = useState('')
   const [show, setShow] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
   const navigate = useNavigate()
 
   async function submit(e) {
     e.preventDefault()
     setError('')
-    if (name.trim().length < 2) return setError('Please enter your full name.')
-    if (password.length < 8) return setError('Use at least 8 characters for your password.')
-    if (password !== confirm) return setError('Passwords do not match.')
+
+    if (name.trim().length < 2) {
+      setError('Please enter your full name.')
+      return
+    }
+
+    if (!email.trim()) {
+      setError('Please enter your email address.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Use at least 8 characters for your password.')
+      return
+    }
+
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+
     try {
-      const user = await auth.register({ name, email, password })
+      const user = await auth.register({
+        name,
+        email,
+        password,
+        confirm_password: confirm,
+      })
+
       onLogin?.(user)
       navigate('/app')
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -36,6 +67,7 @@ export function Register({ onLogin }) {
         <h2>Create your account</h2>
         <p>Build clarity from every conversation.</p>
       </div>
+
       <form className="auth-form" onSubmit={submit}>
         <Field
           label="Full name"
@@ -44,6 +76,7 @@ export function Register({ onLogin }) {
           value={name}
           onChange={e => setName(e.target.value)}
         />
+
         <Field
           label="Work email"
           type="email"
@@ -52,6 +85,7 @@ export function Register({ onLogin }) {
           value={email}
           onChange={e => setEmail(e.target.value)}
         />
+
         <label className="field">
           <span>Password</span>
           <div className="password-wrap">
@@ -61,12 +95,19 @@ export function Register({ onLogin }) {
               autoComplete="new-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              required
             />
-            <button type="button" className="text-action" onClick={() => setShow(!show)}>
+
+            <button
+              type="button"
+              className="text-action"
+              onClick={() => setShow(previous => !previous)}
+            >
               {show ? 'Hide' : 'Show'}
             </button>
           </div>
         </label>
+
         <Field
           label="Confirm password"
           type="password"
@@ -75,22 +116,37 @@ export function Register({ onLogin }) {
           value={confirm}
           onChange={e => setConfirm(e.target.value)}
         />
+
         <div className="member-role-note">
           <UserRound size={16} />
           <span>
-            New accounts start with the <b>Member</b> role. Manager and Admin access must be assigned
-            by an authorized administrator.
+            New accounts start with the <b>Member</b> role.
+            Manager and Admin access must be assigned by an
+            authorized administrator.
           </span>
         </div>
+
         {error && (
           <div className="form-error" role="alert">
             {error}
           </div>
         )}
-        <button className="btn btn-primary btn-full">
-          Create account <ArrowRight size={17} />
+
+        <button
+          type="submit"
+          className="btn btn-primary btn-full"
+          disabled={loading}
+        >
+          {loading ? (
+            'Creating account...'
+          ) : (
+            <>
+              Create account <ArrowRight size={17} />
+            </>
+          )}
         </button>
       </form>
+
       <div className="auth-switch">
         Already have an account? <Link to="/login">Sign in</Link>
       </div>

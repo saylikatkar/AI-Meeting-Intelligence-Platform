@@ -1,109 +1,109 @@
-const USERS_KEY = 'meetingintel_users_v2'
+
+const API_URL = 'http://127.0.0.1:8000/api/auth'
 const SESSION_KEY = 'meetingintel_session_v2'
+const ACCESS_KEY = 'meetingintel_access_token'
+const REFRESH_KEY = 'meetingintel_refresh_token'
 
-const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {}
-// Admin and Manager accounts come ONLY from your local .env file (never committed).
-// If they are not set, no Admin/Manager account exists and only Member sign-up works.
-const STARTER_ACCOUNTS = [
-  {
-    id: 'configured-admin',
-    name: 'Administrator',
-    email: (env.VITE_ADMIN_EMAIL || '').trim().toLowerCase(),
-    password: env.VITE_ADMIN_PASSWORD || '',
-    role: 'Admin',
-  },
-  {
-    id: 'configured-manager',
-    name: 'Meeting Manager',
-    email: (env.VITE_MANAGER_EMAIL || '').trim().toLowerCase(),
-    password: env.VITE_MANAGER_PASSWORD || '',
-    role: 'Manager',
-  },
-].filter(account => account.email && account.password)
+async function apiRequest(endpoint, data) {
+  let response
 
-function getStorage() {
-  if (typeof localStorage !== 'undefined') return localStorage
-  return {
-    _data: {},
-    getItem(k) { return this._data[k] || null },
-    setItem(k, v) { this._data[k] = String(v) },
-    removeItem(k) { delete this._data[k] }
-  }
-}
-
-function getSessionStorage() {
-  if (typeof sessionStorage !== 'undefined') return sessionStorage
-  return getStorage()
-}
-
-function readUsers() {
-  const storage = getStorage()
-  let users = []
   try {
-    const raw = storage.getItem(USERS_KEY) || '[]'
-    users = JSON.parse(raw)
-    if (!Array.isArray(users)) users = []
+    response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
   } catch {
-    users = []
+    throw new Error(
+      'Cannot connect to Django. Make sure the backend is running.'
+    )
   }
 
-  let changed = false
-  for (const account of STARTER_ACCOUNTS) {
-    const index = users.findIndex(user => user.email?.toLowerCase() === account.email)
-    if (index === -1) {
-      users.push(account)
-      changed = true
-    } else {
-      users[index] = { ...users[index], ...account }
-      changed = true
-    }
+  const result = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    const error =
+      result.error ||
+      result.detail ||
+      result.message ||
+      Object.values(result).flat().join(' ')
+
+    throw new Error(
+      Array.isArray(error)
+        ? error.join(' ')
+        : typeof error === 'string'
+          ? error
+          : 'The request failed. Please try again.'
+    )
   }
-  if (changed) saveUsers(users)
-  return users
+
+  return result
 }
 
-function saveUsers(users) {
-  const storage = getStorage()
-  storage.setItem(USERS_KEY, JSON.stringify(users))
+function saveSession(user, access, refresh, remember) {
+  auth.logout()
+
+  const storage = remember ? localStorage : sessionStorage
+
+  storage.setItem(SESSION_KEY, JSON.stringify(user))
+  storage.setItem(ACCESS_KEY, access)
+  storage.setItem(REFRESH_KEY, refresh)
 }
 
 export const auth = {
-  async register({ name, email, password }) {
-    const users = readUsers()
-    const normalized = email.trim().toLowerCase()
-    if (users.some(user => user.email === normalized)) {
-      throw new Error('An account with this email already exists.')
-    }
-    const user = {
-      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
-      name: name.trim(),
-      email: normalized,
+  async register({ name, email, password, confirm_password }) {
+    const result = await apiRequest('/register/', {
+      full_name: name.trim(),
+      email: email.trim().toLowerCase(),
       password,
+      confirm_password,
+    })
+
+    return {
+      id: result.user.id,
+      name: result.user.full_name,
+      email: result.user.email,
       role: 'Member',
     }
-    saveUsers([...users, user])
-    return this.login({ email: normalized, password, role: 'Member' })
   },
 
   async login({ email, password, role, remember = false }) {
-    const user = readUsers().find(
-      item => item.email === email.trim().toLowerCase() && item.password === password
-    )
-    if (!user) throw new Error('Email or password is incorrect.')
-    if (user.role !== role) {
-      throw new Error(`This account is registered as ${user.role}. Select ${user.role} to continue.`)
+    const result = await apiRequest('/login/', {
+      email: email.trim().toLowerCase(),
+      password,
+    })
+
+    const user = {
+      id: result.user.id,
+      name: result.user.full_name,
+      email: result.user.email,
+      role: result.user.role || 'Member',
     }
-    const session = { id: user.id, name: user.name, email: user.email, role: user.role, remember }
-    // "Remember me" keeps the session after the browser closes; otherwise it lasts for this tab only.
-    this.logout()
-    const storage = remember ? getStorage() : getSessionStorage()
-    storage.setItem(SESSION_KEY, JSON.stringify(session))
-    return session
+
+    if (role && user.role !== role) {
+      throw new Error(
+        `This account is registered as ${user.role}. Select ${user.role} to continue.`
+      )
+    }
+
+    saveSession(
+      user,
+      result.access,
+      result.refresh,
+      remember
+    )
+
+    return user
   },
 
   current() {
     try {
-      const raw = getStorage().getItem(SESSION_KEY) || getSessionStorage().getItem(SESSION_KEY)
+      const raw =
+        sessionStorage.getItem(SESSION_KEY) ||
+        localStorage.getItem(SESSION_KEY)
+
       return JSON.parse(raw || 'null')
     } catch {
       return null
@@ -111,7 +111,17 @@ export const auth = {
   },
 
   logout() {
-    getStorage().removeItem(SESSION_KEY)
-    getSessionStorage().removeItem(SESSION_KEY)
+    for (const storage of [localStorage, sessionStorage]) {
+      storage.removeItem(SESSION_KEY)
+      storage.removeItem(ACCESS_KEY)
+      storage.removeItem(REFRESH_KEY)
+    }
+  },
+
+  accessToken() {
+    return (
+      sessionStorage.getItem(ACCESS_KEY) ||
+      localStorage.getItem(ACCESS_KEY)
+    )
   },
 }
